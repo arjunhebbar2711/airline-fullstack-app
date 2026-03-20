@@ -22,19 +22,19 @@ app.get('/', (req, res) => {
 
 app.get('/seed-flight', async (req, res) => {
   try {
-    const testFlight = new Flight({
-      flightNumber: 'AI-202',
-      airline: 'Air India',
-      origin: 'DEL',
-      destination: 'BOM',
+        const testFlight = new Flight({
+      flightNumber: 'DL-404',
+      airline: 'Delta Air Lines',
+      origin: 'ATL',
+      destination: 'DFW',
       departureTime: new Date(),
-      status: 'On Time',
-      gate: 'B12'
+      status: 'Delayed', // Let's mix up the status!
+      gate: 'T14'
     });
     await testFlight.save();
-    res.send('Test flight added to database!');
-  } catch (err) {
-    res.status(500).send('Error adding flight: ' + err.message);
+    res.send('Second test flight added to database!');
+  } catch (error) {
+    res.status(500).send("Error saving flight");
   }
 });
 
@@ -57,6 +57,26 @@ app.get('/api/flights/:flightNumber', async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ message: "Error searching for flight." });
+  }
+});
+
+// POST API: Add a brand new flight from the React frontend
+app.post('/api/flights', async (req, res) => {
+  try {
+    const flightData = req.body;
+    
+    // Automatically add a timestamp since our React form doesn't have one!
+    flightData.departureTime = new Date(); 
+
+    const newFlight = new Flight(flightData); 
+    await newFlight.save();
+    
+    console.log("SUCCESS! Flight added:", flightData.flightNumber);
+    res.status(201).json({ message: "Flight successfully added!", flight: newFlight });
+  } catch (error) {
+    // This will print the EXACT reason MongoDB is mad in your terminal!
+    console.log("DATABASE REJECTION ERROR:", error.message); 
+    res.status(400).json({ message: "Error adding flight. Check if flight number already exists." });
   }
 });
 
