@@ -22,7 +22,7 @@ function App() {
     if (!searchInput) return;
     setLoading(true); setError(''); setFlightData(null);
 
-    fetch(`http://localhost:5000/api/flights/${searchInput}`)
+    fetch(`https://airline-dashboard-mern.onrender.com/api/flights/${searchInput}`)
       .then(res => {
         if (!res.ok) throw new Error('Flight not found.');
         return res.json();
@@ -39,7 +39,7 @@ function App() {
   const handleFetchAllFlights = () => {
     setBoardLoading(true);
     // Notice the URL is just /api/flights (no specific number)
-    fetch('http://localhost:5000/api/flights')
+    fetch('https://airline-dashboard-mern.onrender.com/api/flights')
       .then(res => res.json())
       .then(data => {
         setAllFlights(data);
@@ -56,7 +56,7 @@ function App() {
     e.preventDefault();
     setCreateMessage('Sending to database...');
 
-    fetch('http://localhost:5000/api/flights', {
+    fetch('https://airline-dashboard-mern.onrender.com/api/flights', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newFlight)
@@ -77,7 +77,7 @@ function App() {
 
   // --- UPDATE (PUT) ---
   const handleUpdateStatus = () => {
-    fetch(`http://localhost:5000/api/flights/${flightData.flightNumber}`, {
+    fetch(`https://airline-dashboard-mern.onrender.com/api/flights/${flightData.flightNumber}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }) 
@@ -96,7 +96,7 @@ function App() {
     const confirmDelete = window.confirm(`Are you sure you want to delete flight ${flightData.flightNumber}?`);
     if (!confirmDelete) return;
 
-    fetch(`http://localhost:5000/api/flights/${flightData.flightNumber}`, {
+    fetch(`https://airline-dashboard-mern.onrender.com/api/flights/${flightData.flightNumber}`, {
       method: 'DELETE'
     })
       .then(res => res.json())
