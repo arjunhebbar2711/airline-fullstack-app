@@ -65,7 +65,7 @@ app.post('/api/flights', async (req, res) => {
   try {
     const flightData = req.body;
     
-    // Automatically add a timestamp since our React form doesn't have one!
+    // Automatically add a timestamp 
     flightData.departureTime = new Date(); 
 
     const newFlight = new Flight(flightData); 
@@ -77,6 +77,46 @@ app.post('/api/flights', async (req, res) => {
     // This will print the EXACT reason MongoDB is mad in your terminal!
     console.log("DATABASE REJECTION ERROR:", error.message); 
     res.status(400).json({ message: "Error adding flight. Check if flight number already exists." });
+  }
+});
+
+// PUT API: Update an existing flight's status or gate
+app.put('/api/flights/:flightNumber', async (req, res) => {
+  try {
+    const searchNumber = req.params.flightNumber.toUpperCase();
+    
+    // Find the flight by number, apply the new data from req.body, and return the updated version
+    const updatedFlight = await Flight.findOneAndUpdate(
+      { flightNumber: searchNumber },
+      req.body,
+      { new: true } // This tells MongoDB to send back the NEW data, not the old data
+    );
+
+    if (!updatedFlight) {
+      return res.status(404).json({ message: "Flight not found." });
+    }
+
+    res.json({ message: "Flight updated successfully!", flight: updatedFlight });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating flight." });
+  }
+});
+
+// DELETE API: Cancel/Remove a flight from the database
+app.delete('/api/flights/:flightNumber', async (req, res) => {
+  try {
+    const searchNumber = req.params.flightNumber.toUpperCase();
+    
+    // Find the flight and permanently delete it
+    const deletedFlight = await Flight.findOneAndDelete({ flightNumber: searchNumber });
+
+    if (!deletedFlight) {
+      return res.status(404).json({ message: "Flight not found." });
+    }
+
+    res.json({ message: "Flight deleted successfully!" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting flight." });
   }
 });
 
