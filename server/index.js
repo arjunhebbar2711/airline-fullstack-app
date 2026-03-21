@@ -38,6 +38,17 @@ app.get('/seed-flight', async (req, res) => {
   }
 });
 
+// GET API: Fetch ALL flights for the Departure Board
+app.get('/api/flights', async (req, res) => {
+  try {
+    // Calling .find() with nothing inside the brackets tells MongoDB to return everything!
+    const allFlights = await Flight.find(); 
+    res.json(allFlights);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching flights." });
+  }
+});
+
 // Search API: Get flight status by Flight Number
 app.get('/api/flights/:flightNumber', async (req, res) => {
   try {

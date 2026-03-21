@@ -124,3 +124,37 @@
   font-weight: bold;
   color: #0f172a;
 }
+
+/* --- DEPARTURE BOARD STYLES --- */
+.departure-board {
+  margin-top: 40px;
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  width: 100%;
+  overflow-x: auto;
+}
+
+.flight-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.flight-table th, .flight-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.flight-table th {
+  background-color: #f8fafc;
+  color: #64748b;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 14px;
+}
+
+.flight-table tr:hover {
+  background-color: #f1f5f9;
+}

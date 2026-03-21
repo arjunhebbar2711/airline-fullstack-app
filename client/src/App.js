@@ -11,11 +11,13 @@ function App() {
     flightNumber: '', airline: '', origin: '', destination: '', status: 'On Time', gate: ''
   });
   const [createMessage, setCreateMessage] = useState('');
-  
-  // New state to handle the dropdown for updating a flight's status
   const [newStatus, setNewStatus] = useState('On Time');
 
-  // --- READ (GET) ---
+  // --- NEW MEMORY FOR DEPARTURE BOARD ---
+  const [allFlights, setAllFlights] = useState([]);
+  const [boardLoading, setBoardLoading] = useState(false);
+
+  // --- READ (GET ONE) ---
   const handleSearch = () => {
     if (!searchInput) return;
     setLoading(true); setError(''); setFlightData(null);
@@ -27,10 +29,26 @@ function App() {
       })
       .then(data => { 
         setFlightData(data); 
-        setNewStatus(data.status); // Pre-fill the update dropdown with current status
+        setNewStatus(data.status); 
         setLoading(false); 
       })
       .catch(err => { setError(err.message); setLoading(false); });
+  };
+
+  // --- NEW: READ (GET ALL) ---
+  const handleFetchAllFlights = () => {
+    setBoardLoading(true);
+    // Notice the URL is just /api/flights (no specific number)
+    fetch('http://localhost:5000/api/flights')
+      .then(res => res.json())
+      .then(data => {
+        setAllFlights(data);
+        setBoardLoading(false);
+      })
+      .catch(err => {
+        alert("Failed to fetch departure board");
+        setBoardLoading(false);
+      });
   };
 
   // --- CREATE (POST) ---
@@ -50,6 +68,8 @@ function App() {
         } else {
           setCreateMessage('✅ Flight Added Successfully!');
           setNewFlight({ flightNumber: '', airline: '', origin: '', destination: '', status: 'On Time', gate: '' });
+          // If the board is open, refresh it automatically!
+          if (allFlights.length > 0) handleFetchAllFlights(); 
         }
       })
       .catch(() => setCreateMessage('❌ Failed to connect to server.'));
@@ -60,12 +80,13 @@ function App() {
     fetch(`http://localhost:5000/api/flights/${flightData.flightNumber}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }) // Send the new status to the backend
+      body: JSON.stringify({ status: newStatus }) 
     })
       .then(res => res.json())
       .then(data => {
-        setFlightData(data.flight); // Update the card on the screen with the new data
+        setFlightData(data.flight); 
         alert('Status successfully updated!');
+        if (allFlights.length > 0) handleFetchAllFlights(); // Refresh board
       })
       .catch(err => alert('Failed to update status.'));
   };
@@ -73,7 +94,7 @@ function App() {
   // --- DELETE (DELETE) ---
   const handleDeleteFlight = () => {
     const confirmDelete = window.confirm(`Are you sure you want to delete flight ${flightData.flightNumber}?`);
-    if (!confirmDelete) return; // Stop if they click "Cancel"
+    if (!confirmDelete) return;
 
     fetch(`http://localhost:5000/api/flights/${flightData.flightNumber}`, {
       method: 'DELETE'
@@ -81,8 +102,9 @@ function App() {
       .then(res => res.json())
       .then(data => {
         alert(data.message);
-        setFlightData(null); // Remove the card from the screen
-        setSearchInput('');  // Clear the search box
+        setFlightData(null); 
+        setSearchInput('');  
+        if (allFlights.length > 0) handleFetchAllFlights(); // Refresh board
       })
       .catch(err => alert('Failed to delete flight.'));
   };
@@ -93,6 +115,7 @@ function App() {
     <div className="dashboard-container">
       <h1>✈️ Airline Command Center</h1>
       
+      {/* TOP SECTION: Search and Create */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', flexWrap: 'wrap' }}>
         
         {/* LEFT SIDE: SEARCH & MANAGE DASHBOARD */}
@@ -129,7 +152,6 @@ function App() {
                 </div>
               </div>
 
-              {/* NEW: ADMIN CONTROLS SECTION */}
               <div style={{ borderTop: '2px dashed #e2e8f0', paddingTop: '20px', marginTop: '10px' }}>
                 <p className="info-label">Admin Controls</p>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
@@ -146,7 +168,6 @@ function App() {
                 </div>
                 <button onClick={handleDeleteFlight} className="search-button" style={{ width: '100%', backgroundColor: '#dc2626' }}>🗑️ Delete Entire Flight</button>
               </div>
-
             </div>
           )}
         </div>
@@ -158,27 +179,58 @@ function App() {
           <form onSubmit={handleCreateFlight} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <input required placeholder="Flight Number (e.g., F9-100)" value={newFlight.flightNumber} onChange={(e) => setNewFlight({...newFlight, flightNumber: e.target.value.toUpperCase()})} style={{ padding: '8px' }}/>
             <input required placeholder="Airline Name" value={newFlight.airline} onChange={(e) => setNewFlight({...newFlight, airline: e.target.value})} style={{ padding: '8px' }}/>
-            
             <div style={{ display: 'flex', gap: '10px' }}>
               <input required placeholder="Origin (ATL)" value={newFlight.origin} onChange={(e) => setNewFlight({...newFlight, origin: e.target.value.toUpperCase()})} style={{ padding: '8px', width: '50%' }} maxLength="3"/>
               <input required placeholder="Dest (LAX)" value={newFlight.destination} onChange={(e) => setNewFlight({...newFlight, destination: e.target.value.toUpperCase()})} style={{ padding: '8px', width: '50%' }} maxLength="3"/>
             </div>
-            
             <input required placeholder="Gate (e.g., C4)" value={newFlight.gate} onChange={(e) => setNewFlight({...newFlight, gate: e.target.value.toUpperCase()})} style={{ padding: '8px' }}/>
-            
             <select value={newFlight.status} onChange={(e) => setNewFlight({...newFlight, status: e.target.value})} style={{ padding: '8px' }}>
               <option value="On Time">On Time</option>
               <option value="Delayed">Delayed</option>
               <option value="Cancelled">Cancelled</option>
             </select>
-
             <button type="submit" className="search-button" style={{ backgroundColor: '#166534', marginTop: '10px' }}>Submit to Database</button>
           </form>
-
           {createMessage && <p style={{ textAlign: 'center', fontWeight: 'bold', marginTop: '15px' }}>{createMessage}</p>}
         </div>
-
       </div>
+
+      {/* BOTTOM SECTION: DEPARTURE BOARD */}
+      <div style={{ marginTop: '50px', paddingBottom: '50px' }}>
+        <button onClick={handleFetchAllFlights} className="search-button" style={{ backgroundColor: '#0f172a', padding: '15px 30px', fontSize: '18px' }}>
+          {boardLoading ? 'Loading...' : '📋 View Live Departure Board'}
+        </button>
+
+        {/* The map() function loops through our array of flights and creates a row for each one */}
+        {allFlights.length > 0 && (
+          <div className="departure-board">
+            <h2 style={{ textAlign: 'left', marginTop: 0 }}>Live Flight Status</h2>
+            <table className="flight-table">
+              <thead>
+                <tr>
+                  <th>Flight</th>
+                  <th>Airline</th>
+                  <th>Route</th>
+                  <th>Gate</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allFlights.map((flight) => (
+                  <tr key={flight._id}>
+                    <td style={{ fontWeight: 'bold', color: '#0056b3' }}>{flight.flightNumber}</td>
+                    <td>{flight.airline}</td>
+                    <td>{flight.origin} ➔ {flight.destination}</td>
+                    <td>{flight.gate}</td>
+                    <td><span className={getStatusClass(flight.status)}>{flight.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
