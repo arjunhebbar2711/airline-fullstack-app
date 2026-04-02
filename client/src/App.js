@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import './App.css';
+import DepartureBoard from './components/DepartureBoard';
+import AdminForm from './components/AdminForm';
 
 function App() {
   const [searchInput, setSearchInput] = useState('');
@@ -7,10 +9,6 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const [newFlight, setNewFlight] = useState({
-    flightNumber: '', airline: '', origin: '', destination: '', status: 'On Time', gate: ''
-  });
-  const [createMessage, setCreateMessage] = useState('');
   const [newStatus, setNewStatus] = useState('On Time');
 
   // --- NEW MEMORY FOR DEPARTURE BOARD ---
@@ -38,7 +36,6 @@ function App() {
   // --- NEW: READ (GET ALL) ---
   const handleFetchAllFlights = () => {
     setBoardLoading(true);
-    // Notice the URL is just /api/flights (no specific number)
     fetch('https://airline-dashboard-mern.onrender.com/api/flights')
       .then(res => res.json())
       .then(data => {
@@ -49,30 +46,6 @@ function App() {
         alert("Failed to fetch departure board");
         setBoardLoading(false);
       });
-  };
-
-  // --- CREATE (POST) ---
-  const handleCreateFlight = (e) => {
-    e.preventDefault();
-    setCreateMessage('Sending to database...');
-
-    fetch('https://airline-dashboard-mern.onrender.com/api/flights', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newFlight)
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error || data.message.includes('Error')) {
-          setCreateMessage('❌ ' + data.message);
-        } else {
-          setCreateMessage('✅ Flight Added Successfully!');
-          setNewFlight({ flightNumber: '', airline: '', origin: '', destination: '', status: 'On Time', gate: '' });
-          // If the board is open, refresh it automatically!
-          if (allFlights.length > 0) handleFetchAllFlights(); 
-        }
-      })
-      .catch(() => setCreateMessage('❌ Failed to connect to server.'));
   };
 
   // --- UPDATE (PUT) ---
@@ -173,63 +146,16 @@ function App() {
         </div>
 
         {/* RIGHT SIDE: ADMIN DATA ENTRY FORM */}
-        <div style={{ flex: 1, minWidth: '300px', maxWidth: '400px', background: 'white', padding: '20px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', textAlign: 'left', height: 'fit-content' }}>
-          <h3 style={{ color: '#64748b', marginTop: 0, textAlign: 'center' }}>Admin: Add New Flight</h3>
-          
-          <form onSubmit={handleCreateFlight} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <input required placeholder="Flight Number (e.g., F9-100)" value={newFlight.flightNumber} onChange={(e) => setNewFlight({...newFlight, flightNumber: e.target.value.toUpperCase()})} style={{ padding: '8px' }}/>
-            <input required placeholder="Airline Name" value={newFlight.airline} onChange={(e) => setNewFlight({...newFlight, airline: e.target.value})} style={{ padding: '8px' }}/>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <input required placeholder="Origin (ATL)" value={newFlight.origin} onChange={(e) => setNewFlight({...newFlight, origin: e.target.value.toUpperCase()})} style={{ padding: '8px', width: '50%' }} maxLength="3"/>
-              <input required placeholder="Dest (LAX)" value={newFlight.destination} onChange={(e) => setNewFlight({...newFlight, destination: e.target.value.toUpperCase()})} style={{ padding: '8px', width: '50%' }} maxLength="3"/>
-            </div>
-            <input required placeholder="Gate (e.g., C4)" value={newFlight.gate} onChange={(e) => setNewFlight({...newFlight, gate: e.target.value.toUpperCase()})} style={{ padding: '8px' }}/>
-            <select value={newFlight.status} onChange={(e) => setNewFlight({...newFlight, status: e.target.value})} style={{ padding: '8px' }}>
-              <option value="On Time">On Time</option>
-              <option value="Delayed">Delayed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-            <button type="submit" className="search-button" style={{ backgroundColor: '#166534', marginTop: '10px' }}>Submit to Database</button>
-          </form>
-          {createMessage && <p style={{ textAlign: 'center', fontWeight: 'bold', marginTop: '15px' }}>{createMessage}</p>}
-        </div>
+        <AdminForm refreshBoard={() => { if (allFlights.length > 0) handleFetchAllFlights(); }} />
+        
       </div>
 
       {/* BOTTOM SECTION: DEPARTURE BOARD */}
-      <div style={{ marginTop: '50px', paddingBottom: '50px' }}>
-        <button onClick={handleFetchAllFlights} className="search-button" style={{ backgroundColor: '#0f172a', padding: '15px 30px', fontSize: '18px' }}>
-          {boardLoading ? 'Loading...' : '📋 View Live Departure Board'}
-        </button>
-
-        {/* The map() function loops through our array of flights and creates a row for each one */}
-        {allFlights.length > 0 && (
-          <div className="departure-board">
-            <h2 style={{ textAlign: 'left', marginTop: 0 }}>Live Flight Status</h2>
-            <table className="flight-table">
-              <thead>
-                <tr>
-                  <th>Flight</th>
-                  <th>Airline</th>
-                  <th>Route</th>
-                  <th>Gate</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allFlights.map((flight) => (
-                  <tr key={flight._id}>
-                    <td style={{ fontWeight: 'bold', color: '#0056b3' }}>{flight.flightNumber}</td>
-                    <td>{flight.airline}</td>
-                    <td>{flight.origin} ➔ {flight.destination}</td>
-                    <td>{flight.gate}</td>
-                    <td><span className={getStatusClass(flight.status)}>{flight.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <DepartureBoard 
+        allFlights={allFlights} 
+        boardLoading={boardLoading} 
+        onFetchFlights={handleFetchAllFlights} 
+      />
 
     </div>
   );
