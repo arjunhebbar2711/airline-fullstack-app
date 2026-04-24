@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const Flight = require('./models/Flight.js');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
@@ -9,6 +10,43 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json()); // Allows the server to understand JSON
+
+// ==========================================
+// SECURITY LAYER (JWT)
+// ==========================================
+const SECRET_KEY = 'AirlineSuperSecretKey99!'; // In enterprise, this goes in a .env file!
+
+// 1. The Mint: Creates the token if the password is correct
+app.post('/api/login', (req, res) => {
+  const { password } = req.body;
+  
+  if (password === 'admin123') {
+    // Password is correct! Create a token that expires in 2 hours
+    const token = jwt.sign({ role: 'admin' }, SECRET_KEY, { expiresIn: '2h' });
+    res.json({ message: 'Login successful', token: token });
+  } else {
+    res.status(401).json({ error: '❌ Invalid password' });
+  }
+});
+
+// 2. The Bouncer: Checks for a valid token on protected routes
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  
+  if (!authHeader) {
+    return res.status(403).json({ error: '❌ Access Denied: No VIP wristband (token) provided.' });
+  }
+
+  // Tokens look like "Bearer eyJhbGciOi...", so we split it to get just the token string
+  const token = authHeader.split(' ')[1]; 
+
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ error: '❌ Access Denied: Wristband is fake or expired.' });
+    }
+    next(); // Token is valid! Let them through the door.
+  });
+};
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
@@ -22,7 +60,7 @@ app.get('/', (req, res) => {
 
 app.get('/seed-flight', async (req, res) => {
   try {
-        const testFlight = new Flight({
+    const testFlight = new Flight({
       flightNumber: 'DL-404',
       airline: 'Delta Air Lines',
       origin: 'ATL',
@@ -72,7 +110,7 @@ app.get('/api/flights/:flightNumber', async (req, res) => {
 });
 
 // POST API: Add a brand new flight from the React frontend
-app.post('/api/flights', async (req, res) => {
+app.post('/api/flights', verifyToken, async (req, res) => {
   try {
     const flightData = req.body;
     
@@ -92,7 +130,7 @@ app.post('/api/flights', async (req, res) => {
 });
 
 // PUT API: Update an existing flight's status or gate
-app.put('/api/flights/:flightNumber', async (req, res) => {
+app.put('/api/flights/:flightNumber', verifyToken, async (req, res) => {
   try {
     const searchNumber = req.params.flightNumber.toUpperCase();
     
@@ -114,7 +152,7 @@ app.put('/api/flights/:flightNumber', async (req, res) => {
 });
 
 // DELETE API: Cancel/Remove a flight from the database
-app.delete('/api/flights/:flightNumber', async (req, res) => {
+app.delete('/api/flights/:flightNumber', verifyToken, async (req, res) => {
   try {
     const searchNumber = req.params.flightNumber.toUpperCase();
     
